@@ -38,3 +38,7 @@ def trigger_check_answers(request):
     from meabot.bot import application
     check_and_send_pending_answers(application)
     return HttpResponse("Check executed successfully.")
+
+
+def keep_alive(request):
+    return HttpResponse("I am alive!")

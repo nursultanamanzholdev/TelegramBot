@@ -135,6 +135,42 @@ STUDENT_DISCOUNTS = [
         'discount': '5%',
         'details': 'From 10am to 6pm\nExcept Tuesday (50% because of the student day)',
         'instagram': '[@nanduk_astana](https://www.instagram.com/nanduk_astana)'
+    },
+    {
+        'organization': 'Moon Collection',
+        'addresses': [
+            '[Мангилик Ел 36](https://go.2gis.com/GmPtV)'
+        ],
+        'discount': '10%',
+        'details': 'Until the end of may',
+        'instagram': '[@moon.collection.kz](https://www.instagram.com/moon.collection.kz)'
+    },
+    {
+        'organization': 'Focus Telo',
+        'addresses': [
+            '[Кайым Мухамедханов 4Б блок H​](https://go.2gis.com/K96VT)'
+        ],
+        'discount': '10%',
+        'details': '',
+        'instagram': '[@focustelo](https://www.instagram.com/focustelo)'
+    },
+    {
+        'organization': 'Lammi Me',
+        'addresses': [
+            '[Туран, 55/10, 1 этаж​](https://go.2gis.com/ry77j)'
+        ],
+        'discount': '10%',
+        'details': 'Free brow lamination on the first visit',
+        'instagram': '[@lammi.me](https://www.instagram.com/lammi.me)'
+    },
+    {
+        'organization': 'Dodo Pizza',
+        'addresses': [
+            '[All Branches​]()'
+        ],
+        'discount': '10% - 15%',
+        'details': '10% discount on online orders using the promo code: NU10\n\n15% discount on offline orders at Dodo Pizza using the promo code: NU15',
+        'instagram': '[@dodopizza_astana](https://www.instagram.com/dodopizza_astana)'
     }
 ]
 
@@ -221,6 +257,7 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌍 Exchanges", callback_data="list_exchanges")],
         [InlineKeyboardButton("💼 Internships", callback_data="list_internships")],
         [InlineKeyboardButton("☀️ Summer Schools", callback_data="list_summer_schools")],
+        [InlineKeyboardButton("🎉 Student Discounts", callback_data="go_back_to_discounts")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -229,6 +266,7 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "1) Exchanges 🌍\n"
         "2) Internships 💼\n"
         "3) Summer Schools ☀️\n\n"
+        "4) Student Discounts 🎉\n\n"
         "Select one below!"
     )
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=reply_markup)
