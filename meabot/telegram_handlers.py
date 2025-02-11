@@ -265,7 +265,7 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "📋 *Available Categories:*\n\n"
         "1) Exchanges 🌍\n"
         "2) Internships 💼\n"
-        "3) Summer Schools ☀️\n\n"
+        "3) Summer Schools ☀️\n"
         "4) Student Discounts 🎉\n\n"
         "Select one below!"
     )
@@ -466,7 +466,8 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     """
     await update.message.reply_text(
         "❓ *Submit Your Question*\n\n"
-        "Please type your question now. We'll save it and answer you soon! 📝",
+        "Please type *your question* about exchanges or *your suggestion* about discounts now.\n" 
+        "We'll save it and answer you soon! 📝",
         parse_mode="Markdown"
     )
     context.user_data["awaiting_question"] = True
@@ -487,8 +488,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         await update.message.reply_text(
             "✅ *Question Recorded!*\n\n"
-            "Thanks for your submission. We'll review and respond soon.\n"
-            "Use /help, /list, /discounts to continue exploring. ✨",
+            "Thanks for your submission. We'll review and respond soon. ✨\n",
             parse_mode="Markdown"
         )
         context.user_data["awaiting_question"] = False
