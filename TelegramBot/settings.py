@@ -123,8 +123,3 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CRONJOBS = [
-    # This cron expression means "At minute 0 of every hour"
-    ('0 * * * *', 'django.core.management.call_command', ['check_answers']),
-]
