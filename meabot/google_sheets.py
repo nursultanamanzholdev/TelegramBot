@@ -1,0 +1,127 @@
+# meabot/google_sheets.py
+
+import os
+import datetime
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+
+SPREADSHEET_ID = "16cHaJQiUydZtf4SCoy_g7menpb_U7Fu2qDuTLo8GH9M"
+EXCHANGE_RANGE_NAME = "Exchanges!A2:G"
+
+# NEW range for questions, starting row 2, columns A-D
+QUESTIONS_RANGE_NAME = "Questions!A2:F"
+
+def get_sheets_service():
+    creds = Credentials.from_service_account_file(
+        os.path.join(os.path.dirname(__file__), '../credentials.json'),
+        scopes=SCOPES
+    )
+    service = build('sheets', 'v4', credentials=creds)
+    return service
+
+def fetch_exchange_opportunities():
+    service = get_sheets_service()
+    sheet = service.spreadsheets()
+    response = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=EXCHANGE_RANGE_NAME
+    ).execute()
+
+    values = response.get('values', [])
+    data = []
+    for row in values:
+        if len(row) < 7:
+            continue
+        data.append({
+            'program_name': row[0],
+            'partner_university': row[1],
+            'who_can_apply': row[2],
+            'start_reg': row[3],
+            'end_reg': row[4],
+            'duration': row[5],
+            'website': row[6],
+        })
+    return data
+
+# NEW function to record a question
+def record_user_question(user_id, username, question_text):
+    """
+    Appends a row to the 'Questions' tab with columns:
+    Timestamp, UserID, Username, Question
+    """
+    service = get_sheets_service()
+    sheet = service.spreadsheets()
+
+    timestamp = datetime.datetime.now().isoformat()
+    new_row = [[timestamp, user_id, username, question_text]]
+
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range="Questions!A2",
+        valueInputOption="USER_ENTERED",
+        body={"values": new_row}
+    ).execute()
+
+
+# NEW: Function to check for answers and send them via Telegram
+def check_and_send_pending_answers(application):
+    """
+    Checks the 'Questions' sheet for rows where an answer has been provided
+    (i.e. column E is nonempty) and the 'Sent' column (F) is not "yes".
+    For each such row, the bot sends the answer to the user (using the UserID in column B)
+    and then updates the row to mark the answer as sent.
+    """
+    service = get_sheets_service()
+    sheet = service.spreadsheets()
+
+    result = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=QUESTIONS_RANGE_NAME
+    ).execute()
+
+    rows = result.get('values', [])
+    if not rows:
+        print("No question rows found.")
+        return
+
+    # Import async_to_sync to call our asynchronous bot method in this synchronous context.
+    from asgiref.sync import async_to_sync
+
+    # Process each row; note that the sheet rows start at row 2.
+    for i, row in enumerate(rows):
+        # Ensure the row has 6 columns (fill missing ones with empty strings)
+        row_extended = row + [""] * (6 - len(row))
+        timestamp, user_id, username, question_text, answer_text, sent = row_extended
+
+        # If an answer exists and it has not been sent yet...
+        if answer_text.strip() and sent.strip().lower() != "yes":
+            message_text = (
+                "✅ *Answer Received*\n\n"
+                f"*Your question:* {question_text}\n\n"
+                f"*Our answer:* {answer_text}"
+            )
+            try:
+                chat_id = int(user_id)
+            except Exception as e:
+                print(f"Error converting user_id {user_id} to int: {e}")
+                continue
+
+            # Send the answer to the user via Telegram.
+            async_to_sync(application.bot.send_message)(
+                chat_id=chat_id, text=message_text, parse_mode="Markdown"
+            )
+            print(f"Sent answer to user {chat_id}.")
+
+            # Now update the sheet to mark this answer as sent.
+            # The actual row number in the sheet is (i + 2)
+            row_number = i + 2
+            update_range = f"Questions!F{row_number}"
+            body = {"values": [["yes"]]}
+            sheet.values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=update_range,
+                valueInputOption="USER_ENTERED",
+                body=body
+            ).execute()
