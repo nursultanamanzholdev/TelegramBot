@@ -4,7 +4,10 @@ import os
 import datetime
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from django.core.cache import cache
+import json
 
+SHEETS_CACHE_TTL = 900
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 SPREADSHEET_ID = "16cHaJQiUydZtf4SCoy_g7menpb_U7Fu2qDuTLo8GH9M"
@@ -15,15 +18,25 @@ INTERNSHIPS_RANGE_NAME = "Internships!A2:F"
 # NEW range for questions, starting row 2, columns A-D
 QUESTIONS_RANGE_NAME = "Questions and Suggestions!A2:F"
 
+# Build service once at startup
+service = None
+
 def get_sheets_service():
-    creds = Credentials.from_service_account_file(
-        os.path.join(os.path.dirname(__file__), '../credentials.json'),
-        scopes=SCOPES
-    )
-    service = build('sheets', 'v4', credentials=creds)
+    global service
+    if not service:
+        # Initialize service once
+        creds = Credentials.from_service_account_file(
+            os.path.join(os.path.dirname(__file__), '../credentials.json'),
+            scopes=SCOPES
+        )
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     return service
 
 def fetch_exchange_opportunities():
+    cached = cache.get('exchange_opportunities_data')
+    if cached:
+        return cached
+        
     service = get_sheets_service()
     sheet = service.spreadsheets()
     response = sheet.values().get(
@@ -45,6 +58,8 @@ def fetch_exchange_opportunities():
             'duration': row[5],
             'website': row[6],
         })
+    
+    cache.set('exchange_opportunities_data', data, SHEETS_CACHE_TTL)
     return data
 
 # NEW function to record a question
@@ -129,6 +144,10 @@ def check_and_send_pending_answers(application):
             ).execute()
 
 def fetch_internships():
+    cached = cache.get('internships_data')
+    if cached:
+        return cached
+        
     service = get_sheets_service()
     sheet = service.spreadsheets()
     response = sheet.values().get(
@@ -149,4 +168,6 @@ def fetch_internships():
             'application_deadline': row[4],
             'application_link': row[5],
         })
+    
+    cache.set('internships_data', data, SHEETS_CACHE_TTL)
     return data

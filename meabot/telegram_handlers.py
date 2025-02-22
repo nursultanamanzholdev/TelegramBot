@@ -8,11 +8,12 @@ from telegram.ext import (
     ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 )
 from .google_sheets import fetch_exchange_opportunities, record_user_question, fetch_internships
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-
-STUDENT_DISCOUNTS = [
+# Initial seed data (only stored in cache)
+STUDENT_DISCOUNTS_INIT = [
     {
         'organization': 'Inhype perfume',
         'addresses': [
@@ -268,7 +269,7 @@ def create_discounts_menu(category=None):
     # Show discounts for specific category
     keyboard = []
     for idx in CATEGORIZED_DISCOUNTS.get(category, []):
-        discount = STUDENT_DISCOUNTS[idx]
+        discount = get_student_discounts()[idx]
         button = InlineKeyboardButton(
             f"🏪 {discount['organization']}",
             callback_data=f"discount_{idx}"
@@ -377,7 +378,10 @@ async def show_discount_details(query, context, index):
     """
     Shows detailed information about a specific discount
     """
-    discount = STUDENT_DISCOUNTS[index]
+    discounts = get_student_discounts()
+    if index < 0 or index >= len(discounts):
+        return
+    discount = discounts[index]
 
     details_text = (
         f"🏢 *{discount['organization']}*\n\n"
@@ -607,3 +611,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "• /discounts - Student offers\n"
             "• /ask - Ask a question"
         )
+
+def get_student_discounts():
+    cached = cache.get('student_discounts')
+    if not cached:
+        cache.set('student_discounts', STUDENT_DISCOUNTS_INIT, 3600)
+    return cached or STUDENT_DISCOUNTS_INIT

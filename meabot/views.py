@@ -40,5 +40,6 @@ def trigger_check_answers(request):
     return HttpResponse("Check executed successfully.")
 
 
-def keep_alive(request):
-    return HttpResponse("I am alive!")
+@require_GET
+def lean_keep_alive(request):
+    return HttpResponse("OK")
