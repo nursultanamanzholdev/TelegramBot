@@ -205,7 +205,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "Here you can explore:\n"
         "• Exchange opportunities 🌍\n"
         "• Internships 💼\n"
-        "• Summer schools ☀️\n"
         "• Exclusive student discounts 🎉\n\n"
         "🔹 Type /list to see all opportunities\n"
         "🔹 /discounts for student discounts\n"
@@ -222,7 +221,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
         "ℹ️ *Bot Guide*\n\n"
-        "• /list - Explore opportunities (Exchanges, Internships, Summer Schools)\n"
+        "• /list - Explore opportunities (Exchanges and Internships)\n"
         "• /discounts - Exclusive student discounts 🎉\n"
         "• /ask - Submit your question to us\n"
         "Enjoy our bot! ✨"
@@ -299,12 +298,11 @@ def create_discounts_menu(category=None):
 # --------------------------
 async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Shows categories: Exchanges, Internships, Summer Schools (inline buttons).
+    Shows categories: Exchanges, Internships, Student Discounts (inline buttons).
     """
     keyboard = [
         [InlineKeyboardButton("🌍 Exchanges", callback_data="list_exchanges")],
         [InlineKeyboardButton("💼 Internships", callback_data="list_internships")],
-        [InlineKeyboardButton("☀️ Summer Schools", callback_data="list_summer_schools")],
         [InlineKeyboardButton("🎉 Student Discounts", callback_data="go_back_to_discounts")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -313,8 +311,7 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "📋 *Available Categories:*\n\n"
         "1) Exchanges 🌍\n"
         "2) Internships 💼\n"
-        "3) Summer Schools ☀️\n"
-        "4) Student Discounts 🎉\n\n"
+        "3) Student Discounts 🎉\n\n"
         "Select one below!"
     )
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=reply_markup)
@@ -488,15 +485,13 @@ async def go_back_to_list(query):
     keyboard = [
         [InlineKeyboardButton("🌍 Exchanges", callback_data="list_exchanges")],
         [InlineKeyboardButton("💼 Internships", callback_data="list_internships")],
-        [InlineKeyboardButton("☀️ Summer Schools", callback_data="list_summer_schools")],
         [InlineKeyboardButton("🎉 Student Discounts", callback_data="go_back_to_discounts")]
     ]
     text = (
         "📋 *Available Categories:*\n\n"
         "1) Exchanges 🌍\n"
         "2) Internships 💼\n"
-        "3) Summer Schools ☀️\n"
-        "4) Student Discounts 🎉\n\n"
+        "3) Student Discounts 🎉\n\n"
         "Select one below!"
     )
     await query.edit_message_text(
