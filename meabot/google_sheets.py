@@ -76,7 +76,7 @@ def record_user_question(user_id, username, question_text):
 
     sheet.values().append(
         spreadsheetId=SPREADSHEET_ID,
-        range="Questions!A2",
+        range="Questions and Suggestions!A2",
         valueInputOption="USER_ENTERED",
         body={"values": new_row}
     ).execute()
