@@ -7,7 +7,7 @@ from telegram import (
 from telegram.ext import (
     ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 )
-from .google_sheets import fetch_exchange_opportunities, record_user_question
+from .google_sheets import fetch_exchange_opportunities, record_user_question, fetch_internships
 
 logger = logging.getLogger(__name__)
 
@@ -171,8 +171,26 @@ STUDENT_DISCOUNTS = [
         'discount': '10% - 15%',
         'details': '10% discount on online orders using the promo code: NU10\n\n15% discount on offline orders at Dodo Pizza using the promo code: NU15',
         'instagram': '[@dodopizza_astana](https://www.instagram.com/dodopizza_astana)'
+    },
+    {
+        'organization': 'Essence',
+        'addresses': [
+            '[Косшыгулулы, 7​](https://go.2gis.com/XZgud)'
+        ],
+        'discount': '10% - 15%',
+        'details': 'Does not apply on individual orders.\nВход с салона красоты "Сулу"',
+        'instagram': '[@essence.ast](https://www.instagram.com/essence.ast?igsh=azJlaHd0YzA1djNk)'
     }
 ]
+
+CATEGORIZED_DISCOUNTS = {
+    "Coffeeshops": [9, 10, 11],       # Plum Tea, Jasyl Coffee, Teadot
+    "Cafes & Restaurants": [16, 12, 6],  # DODO Pizza, Nanduk, Veggie House
+    "Beauty & Self-Care": [15, 0, 1, 7], # Lammi.me, Inhype, CAS, Arti Laser
+    "Flowers & Gifts": [2, 5],        # Raushan, Amari Garden
+    "Shopping": [8, 13, 14, 17],      # BRO Glasses, Moon, Focustelo, Essence
+    "Storage": [4, 3]                 # Safar Saqtau, Kansul Group
+}
 
 def back_button(callback_data: str, text: str="« Back"):
     """Helper function to build a 'Back' button with some emoji style."""
@@ -227,21 +245,51 @@ async def discounts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     )
 
 
-def create_discounts_menu():
-    """Build discounts menu content"""
+def create_discounts_menu(category=None):
+    """Build discounts menu with categories"""
+    if not category:
+        # Show category selection
+        keyboard = [
+            [InlineKeyboardButton("☕ Coffeeshops", callback_data="category_coffeeshops")],
+            [InlineKeyboardButton("🍴 Cafes & Restaurants", callback_data="category_cafe_rest")],
+            [InlineKeyboardButton("💅 Beauty & Self-Care", callback_data="category_beauty")],
+            [InlineKeyboardButton("🌸 Flowers & Gifts", callback_data="category_flowers")],
+            [InlineKeyboardButton("🛍️ Shopping", callback_data="category_shopping")],
+            [InlineKeyboardButton("📦 Storage", callback_data="category_storage")],
+            [back_button("go_back_to_list", "« Main Menu")]
+        ]
+        
+        text = (
+            "🎉 *NU Student Discounts*\n\n"
+            "Select a category to view offers:\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        )
+        return text, keyboard
+    
+    # Show discounts for specific category
     keyboard = []
-    for idx, discount in enumerate(STUDENT_DISCOUNTS):
+    for idx in CATEGORIZED_DISCOUNTS.get(category, []):
+        discount = STUDENT_DISCOUNTS[idx]
         button = InlineKeyboardButton(
             f"🏪 {discount['organization']}",
             callback_data=f"discount_{idx}"
         )
         keyboard.append([button])
-
-    keyboard.append([back_button("go_back_to_list", "« Main Menu")])
-
+    
+    keyboard.append([back_button("go_back_to_discounts", "« Back to Categories")])
+    
+    category_emoji = {
+        "coffeeshops": "☕",
+        "cafe_rest": "🍴",
+        "beauty": "💅",
+        "flowers": "🌸",
+        "shopping": "🛍️",
+        "storage": "📦"
+    }.get(category, "🎉")
+    
     text = (
-        "🎉 *NU Student Discounts*\n\n"
-        "Select an organization to view details:\n"
+        f"{category_emoji} *{category.replace('_', ' ').title()} Discounts*\n\n"
+        "Select an organization:\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     )
     return text, keyboard
@@ -277,47 +325,47 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def inline_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-
     data = query.data
 
-    # Existing handlers
-    if data == "list_exchanges":
+    # Add category handlers
+    if data.startswith("category_"):
+        category = data.split("_", 1)[1]
+        text, keyboard = create_discounts_menu(category)
+        await query.edit_message_text(
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    # Existing exchange handlers
+    elif data == "list_exchanges":
         await show_exchanges(query, context)
     elif data == "list_internships":
-        await query.edit_message_text(
-            text=(
-                "💼 *Internships*\n\n"
-                "_No internships available at the moment. Stay tuned!_\n"
-                "Meanwhile, check out other categories or come back soon."
-            ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [back_button("go_back_to_list", "« Back to Categories")]
-            ])
-        )
-    elif data == "list_summer_schools":
-        await query.edit_message_text(
-            text=(
-                "☀️ *Summer Schools*\n\n"
-                "_No summer schools available at the moment. Stay tuned!_\n"
-                "Meanwhile, check out other categories or come back soon."
-            ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [back_button("go_back_to_list", "« Back to Categories")]
-            ])
-        )
+        await show_internships(query, context)
     elif data.startswith("exchange_"):
-        index_str = data.split("_")[1]
-        index = int(index_str)
+        index = int(data.split("_")[1])
         await show_exchange_details(query, context, index)
 
-    # New discount handlers
+    # New internship handlers
+    elif data.startswith("internship_"):
+        index = int(data.split("_")[1])
+        await show_internship_details(query, context, index)
+    elif data == "go_back_to_internships_list":
+        await show_internships(query, context)
+
+    # Existing discount handlers
     elif data.startswith("discount_"):
         index = int(data.split("_")[1])
         await show_discount_details(query, context, index)
+    
+    # Update back button handler
     elif data == "go_back_to_discounts":
-        await discounts_command(update, context)
+        text, keyboard = create_discounts_menu()
+        await query.edit_message_text(
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
     # Existing navigation handlers
     elif data == "go_back_to_list":
@@ -455,6 +503,70 @@ async def go_back_to_list(query):
         text=text,
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def show_internships(query, context):
+    """Displays the list of internship programs"""
+    internships = fetch_internships()
+    if not internships:
+        await query.edit_message_text(
+            text="💼 No internship opportunities available at the moment. Check back later!",
+            reply_markup=InlineKeyboardMarkup([
+                [back_button("go_back_to_list", "« Back to Categories")]
+            ])
+        )
+        return
+
+    keyboard = []
+    for idx, internship in enumerate(internships):
+        button = InlineKeyboardButton(
+            f"💼 {internship['internship_program']}",
+            callback_data=f"internship_{idx}"
+        )
+        keyboard.append([button])
+    
+    keyboard.append([back_button("go_back_to_list", "« Back to Categories")])
+
+    text = (
+        "💼 *Internship Opportunities*\n\n"
+        "Available programs:\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+    )
+    
+    await query.edit_message_text(
+        text=text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def show_internship_details(query, context, index):
+    """Shows detailed information about a specific internship"""
+    internships = fetch_internships()
+    if index < 0 or index >= len(internships):
+        await query.edit_message_text("⚠️ Invalid internship selection.")
+        return
+
+    internship = internships[index]
+
+    details_text = (
+        f"🏢 *{internship['internship_program']}*\n\n"
+        f"📚 *Field/Department:* {internship['field_department']}\n\n"
+        f"⏳ *Duration & Details:*\n{internship['duration_details']}\n\n"
+        f"📍 *Location:* {internship['location']}\n\n"
+        f"📅 *Application Deadline:* {internship['application_deadline']}\n\n"
+        f"🔗 *Application Link:* [Apply Here]({internship['application_link']})\n\n"
+        "_Need more info? Use_ /ask _to contact us!_ 💬"
+    )
+
+    keyboard = [
+        [back_button("go_back_to_internships_list", "« Back to Internships")]
+    ]
+
+    await query.edit_message_text(
+        text=details_text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        disable_web_page_preview=True
     )
 
 # --------------------------

@@ -10,8 +10,10 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = "16cHaJQiUydZtf4SCoy_g7menpb_U7Fu2qDuTLo8GH9M"
 EXCHANGE_RANGE_NAME = "Exchanges!A2:G"
 
+INTERNSHIPS_RANGE_NAME = "Internships!A2:F"
+
 # NEW range for questions, starting row 2, columns A-D
-QUESTIONS_RANGE_NAME = "Questions!A2:F"
+QUESTIONS_RANGE_NAME = "Questions and Suggestions!A2:F"
 
 def get_sheets_service():
     creds = Credentials.from_service_account_file(
@@ -125,3 +127,26 @@ def check_and_send_pending_answers(application):
                 valueInputOption="USER_ENTERED",
                 body=body
             ).execute()
+
+def fetch_internships():
+    service = get_sheets_service()
+    sheet = service.spreadsheets()
+    response = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=INTERNSHIPS_RANGE_NAME
+    ).execute()
+
+    values = response.get('values', [])
+    data = []
+    for row in values:
+        if len(row) < 6:  # Ensure all 6 columns exist
+            continue
+        data.append({
+            'internship_program': row[0],
+            'field_department': row[1],
+            'duration_details': row[2],
+            'location': row[3],
+            'application_deadline': row[4],
+            'application_link': row[5],
+        })
+    return data
