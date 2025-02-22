@@ -184,12 +184,12 @@ STUDENT_DISCOUNTS = [
 ]
 
 CATEGORIZED_DISCOUNTS = {
-    "Coffeeshops": [9, 10, 11],       # Plum Tea, Jasyl Coffee, Teadot
-    "Cafes & Restaurants": [16, 12, 6],  # DODO Pizza, Nanduk, Veggie House
-    "Beauty & Self-Care": [15, 0, 1, 7], # Lammi.me, Inhype, CAS, Arti Laser
-    "Flowers & Gifts": [2, 5],        # Raushan, Amari Garden
-    "Shopping": [8, 13, 14, 17],      # BRO Glasses, Moon, Focustelo, Essence
-    "Storage": [4, 3]                 # Safar Saqtau, Kansul Group
+    "coffeeshops": [9, 10, 11],        # Plum Tea, Jasyl Coffee, Teadot
+    "cafe_restaurants": [16, 12, 6],   # DODO Pizza, Nanduk, Veggie House
+    "beauty_selfcare": [15, 0, 1, 7], # Lammi.me, Inhype, CAS, Arti Laser
+    "flowers_gifts": [2, 5],           # Raushan, Amari Garden
+    "shopping": [8, 13, 14, 17],      # BRO Glasses, Moon, Focustelo, Essence
+    "storage": [4, 3]                 # Safar Saqtau, Kansul Group
 }
 
 def back_button(callback_data: str, text: str="« Back"):
@@ -251,9 +251,9 @@ def create_discounts_menu(category=None):
         # Show category selection
         keyboard = [
             [InlineKeyboardButton("☕ Coffeeshops", callback_data="category_coffeeshops")],
-            [InlineKeyboardButton("🍴 Cafes & Restaurants", callback_data="category_cafe_rest")],
-            [InlineKeyboardButton("💅 Beauty & Self-Care", callback_data="category_beauty")],
-            [InlineKeyboardButton("🌸 Flowers & Gifts", callback_data="category_flowers")],
+            [InlineKeyboardButton("🍴 Cafes & Restaurants", callback_data="category_cafe_restaurants")],
+            [InlineKeyboardButton("💅 Beauty & Self-Care", callback_data="category_beauty_selfcare")],
+            [InlineKeyboardButton("🌸 Flowers & Gifts", callback_data="category_flowers_gifts")],
             [InlineKeyboardButton("🛍️ Shopping", callback_data="category_shopping")],
             [InlineKeyboardButton("📦 Storage", callback_data="category_storage")],
             [back_button("go_back_to_list", "« Main Menu")]
@@ -280,9 +280,9 @@ def create_discounts_menu(category=None):
     
     category_emoji = {
         "coffeeshops": "☕",
-        "cafe_rest": "🍴",
-        "beauty": "💅",
-        "flowers": "🌸",
+        "cafe_restaurants": "🍴",
+        "beauty_selfcare": "💅",
+        "flowers_gifts": "🌸",
         "shopping": "🛍️",
         "storage": "📦"
     }.get(category, "🎉")
@@ -528,8 +528,8 @@ async def show_internships(query, context):
     keyboard.append([back_button("go_back_to_list", "« Back to Categories")])
 
     text = (
-        "💼 *Internship Opportunities*\n\n"
-        "Available programs:\n"
+        "💼 *Internships*\n\n"
+        "Available internships:\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     )
     
