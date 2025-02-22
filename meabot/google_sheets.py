@@ -16,7 +16,7 @@ EXCHANGE_RANGE_NAME = "Exchanges!A2:G"
 INTERNSHIPS_RANGE_NAME = "Internships!A2:F"
 
 # NEW range for questions, starting row 2, columns A-D
-QUESTIONS_RANGE_NAME = "Questions and Suggestions!A2:F"
+QUESTIONS_RANGE_NAME = "Questions!A2:F"
 
 # Build service once at startup
 service = None
@@ -76,7 +76,7 @@ def record_user_question(user_id, username, question_text):
 
     sheet.values().append(
         spreadsheetId=SPREADSHEET_ID,
-        range="Questions and Suggestions!A2",
+        range="Questions!A2",
         valueInputOption="USER_ENTERED",
         body={"values": new_row}
     ).execute()
