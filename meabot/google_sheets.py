@@ -41,22 +41,23 @@ def get_sheets_service():
     global service
     if not service:
         try:
-            # Simplified HTTP configuration
             http = httplib2.Http(
                 ca_certs=certifi.where(),
                 timeout=30
             )
             
-            # Force TLS 1.2 using context
+            # Force TLS 1.2
             context = create_urllib3_context()
-            context.options |= 0x4 << 9 | 0x8 << 9  # Disable TLSv1/TLSv1.1
+            context.options |= 0x4 << 9 | 0x8 << 9
             http.disable_ssl_certificate_validation = False
             
             creds = Credentials.from_service_account_file(
                 os.path.join(os.path.dirname(__file__), '../credentials.json'),
                 scopes=SCOPES
             )
-            creds.refresh(Request(http=http))
+            
+            # Correct refresh call
+            creds.refresh(Request())
             
             service = build('sheets', 'v4', credentials=creds, http=http, cache_discovery=False)
         except Exception as e:
