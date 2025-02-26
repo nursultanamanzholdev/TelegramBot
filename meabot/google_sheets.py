@@ -41,17 +41,13 @@ def get_sheets_service():
     global service
     if not service:
         try:
-            # Configure HTTP client with TLS 1.2
-            http = httplib2.Http()
+            # Load credentials
             creds = Credentials.from_service_account_file(
                 os.path.join(os.path.dirname(__file__), '../credentials.json'),
                 scopes=SCOPES
             )
             
-            # Authorize the HTTP client
-            http = creds.authorize(http)
-            
-            # Build service without explicit http parameter
+            # Build authorized service
             service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
         except Exception as e:
             logger.error(f"Google Sheets init failed: {str(e)}", exc_info=True)
