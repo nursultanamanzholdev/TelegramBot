@@ -6,6 +6,11 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from django.core.cache import cache
 import json
+import certifi
+import httplib2
+import socket
+from urllib3.util.ssl_ import create_urllib3_context
+from google.auth.transport.requests import Request
 
 SHEETS_CACHE_TTL = 900
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -21,15 +26,40 @@ QUESTIONS_RANGE_NAME = "Questions!A2:F"
 # Build service once at startup
 service = None
 
+def _get_ssl_context():
+    ctx = create_urllib3_context()
+    ctx.options |= (
+        0x4 << 9  # OP_NO_TLSv1
+        | 0x8 << 9  # OP_NO_TLSv1_1
+    )
+    return ctx
+
 def get_sheets_service():
     global service
     if not service:
-        # Initialize service once
-        creds = Credentials.from_service_account_file(
-            os.path.join(os.path.dirname(__file__), '../credentials.json'),
-            scopes=SCOPES
-        )
-        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+        try:
+            http = httplib2.Http(
+                ca_certs=certifi.where(),
+                ssl_context=_get_ssl_context(),
+                timeout=30,
+                socket_options=[
+                    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+                    (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60),
+                    (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
+                    (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+                ]
+            )
+            
+            creds = Credentials.from_service_account_file(
+                os.path.join(os.path.dirname(__file__), '../credentials.json'),
+                scopes=SCOPES
+            )
+            creds.refresh(Request(http=http))
+            
+            service = build('sheets', 'v4', credentials=creds, http=http, cache_discovery=False)
+        except Exception as e:
+            logger.error(f"Failed to initialize Google Sheets service: {str(e)}")
+            raise
     return service
 
 def fetch_exchange_opportunities():
