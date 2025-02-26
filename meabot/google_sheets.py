@@ -41,21 +41,16 @@ def get_sheets_service():
     global service
     if not service:
         try:
-            # Remove ssl_context and update socket options
+            # Simplified HTTP configuration
             http = httplib2.Http(
                 ca_certs=certifi.where(),
-                timeout=30,
-                disable_ssl_certificate_validation=False,
-                socket_options=[
-                    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-                    (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60),
-                    (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
-                    (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
-                ]
+                timeout=30
             )
             
             # Force TLS 1.2 using context
-            http.add_certificate_ssl_context(create_urllib3_context())
+            context = create_urllib3_context()
+            context.options |= 0x4 << 9 | 0x8 << 9  # Disable TLSv1/TLSv1.1
+            http.disable_ssl_certificate_validation = False
             
             creds = Credentials.from_service_account_file(
                 os.path.join(os.path.dirname(__file__), '../credentials.json'),
