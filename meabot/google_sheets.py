@@ -1,16 +1,19 @@
 # meabot/google_sheets.py
 
 import os
+import logging
 import datetime
+import certifi
+import socket
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from django.core.cache import cache
 import json
-import certifi
-import httplib2
-import socket
 from urllib3.util.ssl_ import create_urllib3_context
 from google.auth.transport.requests import Request
+import httplib2
+
+logger = logging.getLogger(__name__)
 
 SHEETS_CACHE_TTL = 900
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -38,10 +41,11 @@ def get_sheets_service():
     global service
     if not service:
         try:
+            # Remove ssl_context and update socket options
             http = httplib2.Http(
                 ca_certs=certifi.where(),
-                ssl_context=_get_ssl_context(),
                 timeout=30,
+                disable_ssl_certificate_validation=False,
                 socket_options=[
                     (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
                     (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60),
@@ -49,6 +53,9 @@ def get_sheets_service():
                     (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
                 ]
             )
+            
+            # Force TLS 1.2 using context
+            http.add_certificate_ssl_context(create_urllib3_context())
             
             creds = Credentials.from_service_account_file(
                 os.path.join(os.path.dirname(__file__), '../credentials.json'),
@@ -58,7 +65,7 @@ def get_sheets_service():
             
             service = build('sheets', 'v4', credentials=creds, http=http, cache_discovery=False)
         except Exception as e:
-            logger.error(f"Failed to initialize Google Sheets service: {str(e)}")
+            logger.error(f"Google Sheets init failed: {str(e)}", exc_info=True)
             raise
     return service
 
