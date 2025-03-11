@@ -1,11 +1,12 @@
 # meabot/bot.py
 
 import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, PicklePersistence
 from .telegram_handlers import (
     start_command, help_command, list_command, inline_button_handler, ask_command, message_handler, discounts_command
 )
 import os
+import telegram.ext
 
 TELEGRAM_BOT_TOKEN  = os.environ.get('TELEGRAM_BOT_TOKEN')
 
@@ -17,6 +18,7 @@ logging.basicConfig(
 application = (
     ApplicationBuilder()
     .token(TELEGRAM_BOT_TOKEN)
+    .persistence(telegram.ext.PicklePersistence(filepath='meabot_data.pickle'))
     .build()
 )
 

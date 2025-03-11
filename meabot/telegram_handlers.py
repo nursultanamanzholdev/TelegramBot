@@ -181,11 +181,20 @@ STUDENT_DISCOUNTS_INIT = [
         'discount': '10% - 15%',
         'details': 'Does not apply on individual orders.\nВход с салона красоты "Сулу"',
         'instagram': '[@essence.ast](https://www.instagram.com/essence.ast?igsh=azJlaHd0YzA1djNk)'
+    },
+    {
+        'organization': 'Zebra coffee',
+        'addresses': [
+            '[All branches​]()'
+        ],
+        'discount': '10%',
+        'details': '',
+        'instagram': '[@zebracoffee.kz](https://www.instagram.com/zebracoffee.kz)'
     }
 ]
 
 CATEGORIZED_DISCOUNTS = {
-    "coffeeshops": [9, 10, 11],        # Plum Tea, Jasyl Coffee, Teadot
+    "coffeeshops": [9, 10, 11, 18],        # Plum Tea, Jasyl Coffee, Teadot
     "cafe_restaurants": [16, 12, 6],   # DODO Pizza, Nanduk, Veggie House
     "beauty_selfcare": [15, 0, 1, 7], # Lammi.me, Inhype, CAS, Arti Laser
     "flowers_gifts": [2, 5],           # Raushan, Amari Garden
