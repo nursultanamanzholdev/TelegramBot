@@ -266,8 +266,8 @@ async def show_discount_details(query, context, index):
         details_text += f"➖ {address}\n"
 
     if discount.get('details'):
-        details_text += f"\n📝 *Details:*\n```{discount['details']}```\n"
-
+        details_text += f"\n📝 *Details:*\n{discount['details']}\n\n"
+        
     instagram = discount.get('instagram')
     if instagram:
         if instagram.startswith('@'):
