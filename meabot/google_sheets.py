@@ -41,9 +41,15 @@ def get_sheets_service():
     global service
     if not service:
         try:
-            # Load credentials
-            creds = Credentials.from_service_account_file(
-                os.path.join(os.path.dirname(__file__), '../credentials.json'),
+            # Load credentials from environment variable (JSON string)
+            credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
+            if not credentials_json:
+                raise ValueError("GOOGLE_CREDENTIALS environment variable not set")
+            credentials_info = json.loads(credentials_json)
+            
+            # Create credentials from the JSON info
+            creds = Credentials.from_service_account_info(
+                credentials_info,
                 scopes=SCOPES
             )
             
