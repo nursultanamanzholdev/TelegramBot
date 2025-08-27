@@ -5,6 +5,7 @@ import logging
 import datetime
 import certifi
 import socket
+import re
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from django.core.cache import cache
@@ -20,11 +21,10 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 SPREADSHEET_ID = "16cHaJQiUydZtf4SCoy_g7menpb_U7Fu2qDuTLo8GH9M"
 EXCHANGE_RANGE_NAME = "Exchanges!A2:G"
-
 INTERNSHIPS_RANGE_NAME = "Internships!A2:F"
 
-# NEW range for questions, starting row 2, columns A-D
-QUESTIONS_RANGE_NAME = "Questions!A2:F"
+# Discounts sheet range: A = Organization, B = Addresses, C = Discount, D = Details, E = Instagram, F = Category
+DISCOUNTS_RANGE_NAME = "Discounts!A2:F"
 
 # Build service once at startup
 service = None
@@ -84,6 +84,35 @@ def fetch_exchange_opportunities():
     cache.set('exchange_opportunities_data', data, SHEETS_CACHE_TTL)
     return data
 
+def fetch_internships():
+    cached = cache.get('internships_data')
+    if cached:
+        return cached
+        
+    service = get_sheets_service()
+    sheet = service.spreadsheets()
+    response = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=INTERNSHIPS_RANGE_NAME
+    ).execute()
+
+    values = response.get('values', [])
+    data = []
+    for row in values:
+        if len(row) < 6:  # Ensure all 6 columns exist
+            continue
+        data.append({
+            'internship_program': row[0],
+            'field_department': row[1],
+            'duration_details': row[2],
+            'location': row[3],
+            'application_deadline': row[4],
+            'application_link': row[5],
+        })
+    
+    cache.set('internships_data', data, SHEETS_CACHE_TTL)
+    return data
+
 # NEW function to record a question
 def record_user_question(user_id, username, question_text):
     """
@@ -98,11 +127,10 @@ def record_user_question(user_id, username, question_text):
 
     sheet.values().append(
         spreadsheetId=SPREADSHEET_ID,
-        range=QUESTIONS_RANGE_NAME,
+        range="Questions!A2:F",
         valueInputOption="USER_ENTERED",
         body={"values": new_row}
     ).execute()
-
 
 # NEW: Function to check for answers and send them via Telegram
 def check_and_send_pending_answers(application):
@@ -117,7 +145,7 @@ def check_and_send_pending_answers(application):
 
     result = sheet.values().get(
         spreadsheetId=SPREADSHEET_ID,
-        range=QUESTIONS_RANGE_NAME
+        range="Questions!A2:F"
     ).execute()
 
     rows = result.get('values', [])
@@ -165,31 +193,68 @@ def check_and_send_pending_answers(application):
                 body=body
             ).execute()
 
-def fetch_internships():
-    cached = cache.get('internships_data')
+# ---------------------------
+# NEW: Fetch student discounts from sheet
+# ---------------------------
+def _split_addresses(addresses_raw: str):
+    """
+    Split addresses cell into list. Accepts newline, ||, |, ; as separators.
+    """
+    if not addresses_raw:
+        return []
+    # Normalize line breaks
+    parts = re.split(r'\s*\n\s*|\s*\|\|\s*|\s*\|\s*|\s*;\s*', addresses_raw.strip())
+    result = [p.strip() for p in parts if p and p.strip()]
+    return result
+
+def fetch_student_discounts():
+    """
+    Reads Discounts!A2:F and returns a list of dicts:
+    {
+      'organization': ...,
+      'addresses': [...],
+      'discount': ...,
+      'details': ...,
+      'instagram': ...,
+      'category': ...
+    }
+    The function caches result under 'student_discounts'.
+    """
+    cached = cache.get('student_discounts')
     if cached:
         return cached
-        
+
     service = get_sheets_service()
     sheet = service.spreadsheets()
-    response = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID,
-        range=INTERNSHIPS_RANGE_NAME
-    ).execute()
+    # We fetch up to column F (6 columns) - adjust range if you add more columns
+    try:
+        response = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=DISCOUNTS_RANGE_NAME
+        ).execute()
+    except Exception as e:
+        logger.error("Failed to fetch Discounts sheet: %s", e, exc_info=True)
+        return []
 
     values = response.get('values', [])
     data = []
     for row in values:
-        if len(row) < 6:  # Ensure all 6 columns exist
+        # Ensure row has 6 columns
+        row_extended = row + [""] * (6 - len(row))
+        org, addresses_raw, discount, details, instagram, category = row_extended
+        if not org or not str(org).strip():
+            # skip empty organization rows
             continue
+
+        addresses = _split_addresses(addresses_raw)
         data.append({
-            'internship_program': row[0],
-            'field_department': row[1],
-            'duration_details': row[2],
-            'location': row[3],
-            'application_deadline': row[4],
-            'application_link': row[5],
+            'organization': str(org).strip(),
+            'addresses': addresses,
+            'discount': str(discount).strip(),
+            'details': str(details).strip(),
+            'instagram': str(instagram).strip(),
+            'category': str(category).strip()
         })
-    
-    cache.set('internships_data', data, SHEETS_CACHE_TTL)
+
+    cache.set('student_discounts', data, SHEETS_CACHE_TTL)
     return data
