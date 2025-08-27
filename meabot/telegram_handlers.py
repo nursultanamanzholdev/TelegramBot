@@ -266,10 +266,16 @@ async def show_discount_details(query, context, index):
         details_text += f"➖ {address}\n"
 
     if discount.get('details'):
-        details_text += f"\n📝 *Details:*\n`{discount['details']}`\n"
+        details_text += f"\n📝 *Details:*\n```{discount['details']}```\n"
 
-    if discount.get('instagram'):
-        details_text += f"\n📱 *Instagram:* {discount['instagram']}\n\n"
+    instagram = discount.get('instagram')
+    if instagram:
+        if instagram.startswith('@'):
+            user = instagram[1:]
+            formatted_ig = f"[@{user}](https://www.instagram.com/{user}/)"
+        else:
+            formatted_ig = instagram
+        details_text += f"\n📱 *Instagram:* {formatted_ig}\n\n"
 
     details_text += "_Show student ID to claim!_\n"
 
